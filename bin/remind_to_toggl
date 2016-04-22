@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+require 'chronic_duration'
+require 'dotenv'
+require 'pry'
+
+require_relative '../lib/toggl_bot'
+
+Dotenv.load
+
+our_slack = TogglBot::Slack.new
+our_toggl = TogglBot::Toggl.new
+toggl_users = our_toggl.users
+
+
+our_slack.active_users.each do |user|
+  toggl_user = toggl_users.find { |u| u['email'] == user['profile']['email'] }
+  if toggl_user
+    notifier = TogglBot::Notifier.new(our_slack, user)
+    time_checker = TogglBot::TimeChecker.new(toggl_user, toggl_user['tz_offset'])
+
+    case time_checker.status
+    when time_checker.status == :idle && time_checker.time < 60 * 60
+      notifier.notify_missing_entry      
+    end
+  end
+end
+
+# bot.
+#
+# today = Date.today
+#
+# todays_report = toggl_reports.summary(ENV['TOGGL_WORKSPACE_ID'],
+#                                       since: today.to_s,
+#                                       until: today.to_s,
+#                                       grouping: 'users')
+#
+# todays_report['data'].each do |user|
+#   toggl_user = toggl_workspace_users.find { |u| u['id'] === user['id'] }
+#   # slack_user = slack_users.find { |u| u['profile']['email'] == toggl_user['email'] }
+#
+#   # state = TogglBot::State.new(slack_user, user)
+#
+#   binding.pry
+# toggled_time = user['time'] / 1000.to_f
+# should_say_something?(slack_user.tz)
+# time_text = get_time_text(toggled_time)
+# time_text = ChronicDuration.output(toggled_time, format: :long, unit: 2)
+# text = "Solo llevas #{time_text} toggled"
+# p text
+# slack_client.chat_postMessage(channel: slack_user['id'], text: text, as_user: true)
+# end
+
+# def get_time_text(time)
+#   time_string = ChronicDuration.output(time, format: :long, unit: 2)
+#   "You have toggled #{time_string} today"
+# end
+#
+# def get_reaction(time, timezone)
+#   case
+#   when diff < 1.hour
+#     "That seems low. Maybe you forget to "
+#   end
+# end
+# client.auth_test
